@@ -1,0 +1,50 @@
+# Build results
+bin/
+obj/
+
+# Visual Studio Code
+.vscode/
+
+# Rider
+.idea/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment files
+.env
+
+# SQLite DB
+*.db
+*.sqlite
+
+# Publish
+publish/
+
+# Node (프론트 붙일 가능성 대비)
+node_modules/
+
+# Test results
+TestResults/
+
+# Coverage
+coverage/
+
+# JetBrains Rider
+*.DotSettings.user
+
+# Visual Studio
+.vs/
+
+# Package lock
+packages/
