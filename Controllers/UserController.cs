@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using MongoDB.Driver;
 using MemberApi.Models;
+using MemberApi.Services;
 
 namespace MemberApi.Controllers
 {
@@ -8,19 +8,32 @@ namespace MemberApi.Controllers
     [Route("users")]
     public class UserController : ControllerBase
     {
-        private readonly IMongoCollection<User> _users;
+        private readonly UserService _userService;
 
-        public UserController(IMongoClient client)
+        public UserController(UserService userService)
         {
-            var database = client.GetDatabase("appdb");
-            _users = database.GetCollection<User>("user");
+            _userService = userService;
         }
 
         [HttpGet]
-        public async Task<List<User>> Get()
+        [Route("list")]
+        public async Task<ApiResponse<List<UserResponse>>> List(
+            [FromQuery] int page = 1,
+            [FromQuery] int size = 10
+        )
         {
-            return await _users.Find(_ => true).ToListAsync();
+            var users = await _userService.List(page, size);
+
+            return new ApiResponse<List<UserResponse>>(true, users);
         }
 
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ApiResponse<UserResponse>>> Find(string id)
+        {
+            var user = await _userService.Find(id);
+            if (user == null)
+                return NotFound(new ApiResponse<UserResponse>(false, null, "User not found"));
+            return Ok(new ApiResponse<UserResponse>(true, user));
+        }
     }
 }

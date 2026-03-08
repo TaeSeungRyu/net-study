@@ -5,6 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
+builder.Services.AddScoped<MemberApi.Services.UserService>();
 
 builder.Services.AddSingleton<IMongoClient>(
     new MongoClient("mongodb://root:rootpassword@localhost:27017/appdb?authSource=admin")

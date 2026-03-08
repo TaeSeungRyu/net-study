@@ -11,16 +11,16 @@ namespace MemberApi.Models
         public string? Id { get; set; }
 
         [BsonElement("username")]
-        public string Username { get; set; }
+        public string Username { get; set; } = "";
 
         [BsonElement("password")]
-        public string Password { get; set; }
+        public string Password { get; set; } = "";
 
         [BsonElement("name")]
-        public string? Name { get; set; }
+        public string? Name { get; set; } = "";
 
         [BsonElement("accessDate")]
-        public string? AccessDate { get; set; }
+        public string? AccessDate { get; set; } = "";
 
         [BsonElement("role")]
         public List<object>? Role { get; set; }
