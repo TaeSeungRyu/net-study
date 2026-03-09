@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MemberApi.Models;
 using MemberApi.Services;
@@ -17,13 +18,13 @@ namespace MemberApi.Controllers
 
         [HttpGet]
         [Route("list")]
+        //[Authorize]
         public async Task<ApiResponse<List<UserResponse>>> List(
             [FromQuery] int page = 1,
             [FromQuery] int size = 10
         )
         {
             var users = await _userService.List(page, size);
-
             return new ApiResponse<List<UserResponse>>(true, users);
         }
 

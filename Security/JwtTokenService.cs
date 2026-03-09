@@ -8,19 +8,19 @@ namespace MemberApi.Security
 {
     public class JwtTokenService
     {
-        private readonly string _secret = "SUPER_SECRET_KEY_123456";
+        private readonly string _secret = "super_secret_key_for_jwt_token_123456";
         private readonly string _issuer = "memberapi";
 
         public string GenerateToken(User user)
         {
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id ?? ""),
-                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.NameIdentifier, user.id ?? ""),
+                new Claim(ClaimTypes.Name, user.username),
             };
-            if (user.AuthList != null)
+            if (user.authList != null)
             {
-                foreach (var auth in user.AuthList)
+                foreach (var auth in user.authList)
                 {
                     claims.Add(new Claim(ClaimTypes.Role, auth));
                 }

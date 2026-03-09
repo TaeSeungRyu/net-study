@@ -9,6 +9,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 builder.Services.AddScoped<MemberApi.Services.UserService>();
+builder.Services.AddScoped<MemberApi.Services.AuthService>();
+builder.Services.AddScoped<MemberApi.Security.JwtTokenService>();
 
 
 builder.Services.AddSingleton<IMongoClient>(
@@ -44,9 +46,9 @@ if (app.Environment.IsDevelopment())
 }
 
 //app.UseHttpsRedirection();
-app.MapControllers();
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapControllers();
 
 app.Run();
 

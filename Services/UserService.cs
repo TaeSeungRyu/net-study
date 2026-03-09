@@ -23,28 +23,28 @@ namespace MemberApi.Services
                 .ToListAsync();
             return users.Select(u => new UserResponse
             {
-                Id = u.Id!,
-                Username = u.Username,
-                Name = u.Name,
-                Email = u.Email,
-                Phone = u.Phone
+                id = u.id!,
+                username = u.username,
+                name = u.name,
+                email = u.email,
+                phone = u.phone
             }).ToList();
         }
 
         public async Task<UserResponse?> Find(string id)
         {
             var user = await _users
-                .Find(x => x.Id == id)
+                .Find(x => x.id == id)
                 .FirstOrDefaultAsync();
             if (user == null)
                 return null;
             return new UserResponse
             {
-                Id = user.Id!,
-                Username = user.Username,
-                Name = user.Name,
-                Email = user.Email,
-                Phone = user.Phone
+                id = user.id!,
+                username = user.username,
+                name = user.name,
+                email = user.email,
+                phone = user.phone
             };
         }
     }

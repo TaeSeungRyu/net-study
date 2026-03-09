@@ -8,39 +8,39 @@ namespace MemberApi.Models
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
-        public string? Id { get; set; }
+        public string? id { get; set; }
 
         [BsonElement("username")]
-        public string Username { get; set; } = "";
+        public string username { get; set; } = "";
 
         [BsonElement("password")]
-        public string Password { get; set; } = "";
+        public string password { get; set; } = "";
 
         [BsonElement("name")]
-        public string? Name { get; set; } = "";
+        public string? name { get; set; } = "";
 
         [BsonElement("accessDate")]
-        public string? AccessDate { get; set; } = "";
+        public string? accessDate { get; set; } = "";
 
         [BsonElement("role")]
-        public List<object>? Role { get; set; }
+        public List<object>? role { get; set; }
 
         [BsonElement("email")]
-        public string? Email { get; set; }
+        public string? email { get; set; }
 
         [BsonElement("phone")]
-        public string? Phone { get; set; }
+        public string? phone { get; set; }
 
         [BsonElement("profileImage")]
-        public string? ProfileImage { get; set; }
+        public string? profileImage { get; set; }
 
         [BsonElement("authList")]
-        public List<string>? AuthList { get; set; }
+        public List<string>? authList { get; set; }
 
         [BsonElement("createdAt")]
-        public DateTime? CreatedAt { get; set; }
+        public DateTime? createdAt { get; set; }
 
         [BsonElement("updatedAt")]
-        public DateTime? UpdatedAt { get; set; }
+        public DateTime? updatedAt { get; set; }
     }
 }
