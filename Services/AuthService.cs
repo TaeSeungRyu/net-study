@@ -16,8 +16,8 @@ namespace MemberApi.Services
 
         public async Task<User?> ValidateUser(string username, string password)
         {
-            Console.WriteLine("Hello World");
-            Console.WriteLine($"값: {username} {password}");
+            // Console.WriteLine("Hello World");
+            // Console.WriteLine($"값: {username} {password}");
             var user = await _users
                 .Find(x => x.username == username)
                 .FirstOrDefaultAsync();

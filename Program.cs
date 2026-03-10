@@ -2,6 +2,8 @@ using MongoDB.Driver;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using MemberApi.Constants;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,10 +29,10 @@ builder.Services
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = "myapi",
-        ValidAudience = "myapi",
+        ValidIssuer = Constants.JwtIssuer,
+        ValidAudience = Constants.JwtIssuer,
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes("secretkey123456")
+            Encoding.UTF8.GetBytes(Constants.JwtSecret)
         )
     };
 });

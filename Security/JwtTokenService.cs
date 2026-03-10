@@ -3,13 +3,15 @@ using System.Security.Claims;
 using System.Text;
 using MemberApi.Models;
 using Microsoft.IdentityModel.Tokens;
+using MemberApi.Constants;
+
 
 namespace MemberApi.Security
 {
     public class JwtTokenService
     {
-        private readonly string _secret = "super_secret_key_for_jwt_token_123456";
-        private readonly string _issuer = "memberapi";
+        private readonly string _secret = MemberApi.Constants.Constants.JwtSecret;
+        private readonly string _issuer = MemberApi.Constants.Constants.JwtIssuer;
 
         public string GenerateToken(User user)
         {
@@ -18,12 +20,14 @@ namespace MemberApi.Security
                 new Claim(ClaimTypes.NameIdentifier, user.id ?? ""),
                 new Claim(ClaimTypes.Name, user.username),
             };
-            if (user.authList != null)
+            if (user.role != null)
             {
-                foreach (var auth in user.authList)
+                foreach (var auth in user.role)
                 {
                     claims.Add(new Claim(ClaimTypes.Role, auth));
                 }
+                Console.WriteLine($"값: {user.username} {user.password}");
+                Console.WriteLine($"값: {string.Join(", ", user.role)}");
             }
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(_secret)

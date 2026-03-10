@@ -23,7 +23,7 @@ namespace MemberApi.Models
         public string? accessDate { get; set; } = "";
 
         [BsonElement("role")]
-        public List<object>? role { get; set; }
+        public List<string>? role { get; set; }
 
         [BsonElement("email")]
         public string? email { get; set; }
@@ -33,9 +33,6 @@ namespace MemberApi.Models
 
         [BsonElement("profileImage")]
         public string? profileImage { get; set; }
-
-        [BsonElement("authList")]
-        public List<string>? authList { get; set; }
 
         [BsonElement("createdAt")]
         public DateTime? createdAt { get; set; }

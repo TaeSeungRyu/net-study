@@ -23,9 +23,6 @@ namespace MemberApi.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest req)
         {
-
-            Console.WriteLine("Hello World");
-            Console.WriteLine($"값: {req.username} {req.password}");
             var user = await _authService.ValidateUser(
                 req.username,
                 req.password

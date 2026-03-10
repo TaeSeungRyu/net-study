@@ -18,7 +18,7 @@ namespace MemberApi.Controllers
 
         [HttpGet]
         [Route("list")]
-        //[Authorize]
+        [Authorize(Roles = "admin")] //테스트
         public async Task<ApiResponse<List<UserResponse>>> List(
             [FromQuery] int page = 1,
             [FromQuery] int size = 10
