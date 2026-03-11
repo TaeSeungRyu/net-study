@@ -3,7 +3,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using MemberApi.Constants;
-
+using MemberApi.MiddleWare;
+using MemberApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +36,23 @@ builder.Services
             Encoding.UTF8.GetBytes(Constants.JwtSecret)
         )
     };
+    options.Events = new JwtBearerEvents
+    {
+        OnChallenge = async context =>
+        {
+            context.HandleResponse();
+            context.Response.StatusCode = 401;
+            context.Response.ContentType = "application/json";
+            ApiResponse<object> response = new ApiResponse<object>(
+                false,
+                null,
+                "인증이 필요합니다."
+            );
+            await context.Response.WriteAsync(
+                System.Text.Json.JsonSerializer.Serialize(response)
+            );
+        }
+    };    
 });
 
 
@@ -48,9 +66,12 @@ if (app.Environment.IsDevelopment())
 }
 
 //app.UseHttpsRedirection();
+app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+
 
 app.Run();
 
