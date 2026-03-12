@@ -23,7 +23,7 @@ namespace MemberApi.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest req)
         {
-            var user = await _authService.ValidateUser(
+            var user = await _authService.GenerateToken(
                 req.username,
                 req.password
             );
@@ -37,20 +37,10 @@ namespace MemberApi.Controllers
                     )
                 );
             }
-            var token = _jwtService.GenerateToken(user);
             return Ok(
                 new ApiResponse<object>(
                     true,
-                    new
-                    {
-                        token,
-                        user = new
-                        {
-                            user.id,
-                            user.username,
-                            user.name
-                        }
-                    }
+                    user
                 )
             );
         }

@@ -1,4 +1,5 @@
 using MemberApi.Models;
+using MemberApi.Security;
 using MongoDB.Driver;
 
 namespace MemberApi.Services
@@ -38,6 +39,36 @@ namespace MemberApi.Services
                 .FirstOrDefaultAsync();
             if (user == null)
                 return null;
+            return new UserResponse
+            {
+                id = user.id!,
+                username = user.username,
+                name = user.name,
+                email = user.email,
+                phone = user.phone
+            };
+        }
+
+        public async Task<UserResponse> Create(User user)
+        {
+
+            if (string.IsNullOrWhiteSpace(user.username))
+                throw new ArgumentException("아이디는 필수입니다.");
+
+            if (string.IsNullOrWhiteSpace(user.password))
+                throw new ArgumentException("비밀번호는 필수입니다.");     
+
+            var existingUser = await _users
+                .Find(x => x.username == user.username)
+                .FirstOrDefaultAsync();
+            if (existingUser != null)
+            {
+                throw new InvalidOperationException("이미 존재하는 사용자 이름입니다.");
+            }
+
+            user.password = PasswordUtil.HashPassword(user.password);
+
+            await _users.InsertOneAsync(user);
             return new UserResponse
             {
                 id = user.id!,

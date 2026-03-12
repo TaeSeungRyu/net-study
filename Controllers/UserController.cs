@@ -35,5 +35,19 @@ namespace MemberApi.Controllers
                 return NotFound(new ApiResponse<UserResponse>(false, null, "User not found"));
             return Ok(new ApiResponse<UserResponse>(true, user));
         }
+
+        [HttpPost]
+        public async Task<ActionResult<ApiResponse<UserResponse>>> Create([FromBody] User user)
+        {
+            try
+            {
+                var createdUser = await _userService.Create(user);
+                return Ok(new ApiResponse<UserResponse>(true, createdUser));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ApiResponse<UserResponse>(false, null, ex.Message));
+            }
+        }
     }
 }
