@@ -56,7 +56,7 @@ namespace MemberApi.Services
                 throw new ArgumentException("아이디는 필수입니다.");
 
             if (string.IsNullOrWhiteSpace(user.password))
-                throw new ArgumentException("비밀번호는 필수입니다.");     
+                throw new ArgumentException("비밀번호는 필수입니다.");
 
             var existingUser = await _users
                 .Find(x => x.username == user.username)
@@ -77,6 +77,30 @@ namespace MemberApi.Services
                 email = user.email,
                 phone = user.phone
             };
+        }
+        
+        public async Task Update(string id, User user)
+        {
+            var existingUser = await _users
+                .Find(x => x.id == id)
+                .FirstOrDefaultAsync();
+            if (existingUser == null)
+                throw new KeyNotFoundException("사용자를 찾을 수 없습니다.");
+
+            if (!string.IsNullOrWhiteSpace(user.password))
+            {
+                user.password = PasswordUtil.HashPassword(user.password);
+            }
+            else
+            {
+                user.password = existingUser.password;
+            }
+
+            user.username = existingUser.username; // 아이디는 변경 불가
+            user.id = id;
+            user.updatedAt = DateTime.UtcNow;
+
+            await _users.ReplaceOneAsync(x => x.id == id, user);
         }
     }
 }

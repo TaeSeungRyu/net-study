@@ -49,5 +49,19 @@ namespace MemberApi.Controllers
                 return BadRequest(new ApiResponse<UserResponse>(false, null, ex.Message));
             }
         }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult<ApiResponse<UserResponse>>> Update(string id, [FromBody] User user)
+        {
+            try
+            {
+                await _userService.Update(id, user);
+                return Ok(new ApiResponse<UserResponse>(true, null, "User updated successfully"));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponse<UserResponse>(false, null, ex.Message));
+            }
+        }
     }
 }
