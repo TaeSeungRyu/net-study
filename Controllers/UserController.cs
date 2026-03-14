@@ -63,5 +63,23 @@ namespace MemberApi.Controllers
                 return NotFound(new ApiResponse<UserResponse>(false, null, ex.Message));
             }
         }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(string id)
+        {
+            try
+            {
+                await _userService.Delete(id);
+                return Ok(new ApiResponse<UserResponse>(true, null, "User deleted successfully"));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new ApiResponse<UserResponse>(false, null, ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ApiResponse<UserResponse>(false, null, ex.Message));
+            }
+        }        
     }
 }

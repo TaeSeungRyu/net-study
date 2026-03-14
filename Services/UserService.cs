@@ -78,7 +78,7 @@ namespace MemberApi.Services
                 phone = user.phone
             };
         }
-        
+
         public async Task Update(string id, User user)
         {
             var existingUser = await _users
@@ -86,7 +86,6 @@ namespace MemberApi.Services
                 .FirstOrDefaultAsync();
             if (existingUser == null)
                 throw new KeyNotFoundException("사용자를 찾을 수 없습니다.");
-
             if (!string.IsNullOrWhiteSpace(user.password))
             {
                 user.password = PasswordUtil.HashPassword(user.password);
@@ -95,12 +94,25 @@ namespace MemberApi.Services
             {
                 user.password = existingUser.password;
             }
-
             user.username = existingUser.username; // 아이디는 변경 불가
             user.id = id;
             user.updatedAt = DateTime.UtcNow;
-
             await _users.ReplaceOneAsync(x => x.id == id, user);
         }
+        
+        public async Task Delete(string id)
+        {
+            var existingUser = await _users
+                .Find(x => x.id == id)
+                .FirstOrDefaultAsync();
+
+            if (existingUser == null)
+                throw new KeyNotFoundException("사용자를 찾을 수 없습니다.");
+
+            var result = await _users.DeleteOneAsync(x => x.id == id);
+            if (result.DeletedCount == 0){
+                throw new InvalidOperationException("사용자 삭제에 실패했습니다.");
+            }
+        }        
     }
 }
