@@ -7,11 +7,13 @@ namespace MemberApi.Services
     public class UserService
     {
         private readonly IMongoCollection<User> _users;
+        private readonly IMongoCollection<Auth> _auths;
 
         public UserService(IMongoClient client)
         {
             var database = client.GetDatabase("appdb");
             _users = database.GetCollection<User>("user");
+            _auths = database.GetCollection<Auth>("auth");
         }
 
         public async Task<List<UserResponse>> List(int page, int size)
@@ -37,15 +39,27 @@ namespace MemberApi.Services
             var user = await _users
                 .Find(x => x.id == id)
                 .FirstOrDefaultAsync();
+
             if (user == null)
                 return null;
+
+            List<Auth> authList = new();
+
+            if (user.role != null && user.role.Count > 0)
+            {
+                authList = await _auths
+                    .Find(x => user.role.Contains(x.code))
+                    .ToListAsync();
+            }
+
             return new UserResponse
             {
                 id = user.id!,
                 username = user.username,
                 name = user.name,
                 email = user.email,
-                phone = user.phone
+                phone = user.phone,
+                auth = authList
             };
         }
 

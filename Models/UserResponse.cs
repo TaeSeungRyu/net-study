@@ -7,5 +7,7 @@ namespace MemberApi.Models
         public string? name { get; set; }
         public string? email { get; set; }
         public string? phone { get; set; }
+
+        public List<Auth>? auth { get; set; }
     }
 }
