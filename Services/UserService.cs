@@ -15,7 +15,32 @@ namespace MemberApi.Services
             _users = database.GetCollection<User>("user");
             _auths = database.GetCollection<Auth>("auth");
         }
+        public async Task<List<UserResponse>> List(int page, int size)
+        {
+            var skip = (page - 1) * size;
 
+            var result = await _users.Aggregate()
+                .Lookup<User, Auth, UserWithAuth>(
+                    foreignCollection: _auths,
+                    localField: u => u.role,
+                    foreignField: a => a.code,
+                    @as: x => x.roles
+                )
+                .Skip(skip)
+                .Limit(size)
+                .ToListAsync();
+
+            return result.Select(u => new UserResponse
+            {
+                id = u.id!,
+                username = u.username,
+                name = u.name,
+                email = u.email,
+                phone = u.phone,
+                auth = u.roles
+            }).ToList();
+        }        
+/**
         public async Task<List<UserResponse>> List(int page, int size)
         {
             var skip = (page - 1) * size;
@@ -33,7 +58,7 @@ namespace MemberApi.Services
                 phone = u.phone
             }).ToList();
         }
-
+**/
         public async Task<UserResponse?> Find(string id)
         {
             var user = await _users
