@@ -40,25 +40,7 @@ namespace MemberApi.Services
                 auth = u.roles
             }).ToList();
         }        
-/**
-        public async Task<List<UserResponse>> List(int page, int size)
-        {
-            var skip = (page - 1) * size;
-            var users = await _users
-                .Find(_ => true)
-                .Skip(skip)
-                .Limit(size)
-                .ToListAsync();
-            return users.Select(u => new UserResponse
-            {
-                id = u.id!,
-                username = u.username,
-                name = u.name,
-                email = u.email,
-                phone = u.phone
-            }).ToList();
-        }
-**/
+
         public async Task<UserResponse?> Find(string id)
         {
             var user = await _users

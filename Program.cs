@@ -13,6 +13,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 builder.Services.AddScoped<MemberApi.Services.UserService>();
 builder.Services.AddScoped<MemberApi.Services.AuthService>();
+builder.Services.AddScoped<MemberApi.Services.AuthCodeService>();
 builder.Services.AddScoped<MemberApi.Security.JwtTokenService>();
 
 
