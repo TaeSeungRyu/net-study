@@ -56,6 +56,7 @@ builder.Services
     };    
 });
 
+builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
@@ -72,6 +73,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=AuthCode}/{action=Index}/{id?}");
 
 
 app.Run();

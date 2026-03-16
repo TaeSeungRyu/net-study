@@ -1,0 +1,39 @@
+@model MemberApi.Models.PagedResult<MemberApi.Models.Auth>
+
+<h2>Auth Code List</h2>
+
+<table border="1">
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.Items)
+        {
+            <tr>
+                <td>@item.code</td>
+                <td>@item.name</td>
+                <td>@item.desc</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div>
+    Page @Model.Page / @Model.TotalPages
+</div>
+
+<div>
+    @if (Model.Page > 1)
+    {
+        <a href="?page=@(Model.Page-1)">Prev</a>
+    }
+
+    @if (Model.Page < Model.TotalPages)
+    {
+        <a href="?page=@(Model.Page+1)">Next</a>
+    }
+</div>
