@@ -35,6 +35,32 @@ namespace MemberApi.Services
             return result;
         }
 
+        public async Task<PagedResult<Auth>> PagedList(string? name, int page, int size)
+        {
+            var filter = Builders<Auth>.Filter.Empty;
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                filter = Builders<Auth>.Filter.Regex(x => x.name, new MongoDB.Bson.BsonRegularExpression(name, "i"));
+            }
+
+            var total = await _auths.CountDocumentsAsync(filter);
+
+            var items = await _auths
+                .Find(filter)
+                .Skip((page - 1) * size)
+                .Limit(size)
+                .ToListAsync();
+
+            return new PagedResult<Auth>
+            {
+                Items = items,
+                Page = page,
+                Size = size,
+                TotalCount = (int)total
+            };
+        }        
+
         // 단일 조회
         public async Task<Auth?> Get(string id)
         {

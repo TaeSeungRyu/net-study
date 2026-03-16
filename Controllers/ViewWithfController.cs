@@ -15,8 +15,7 @@ namespace MemberApi.Controllers
 
         public async Task<IActionResult> Index(string? name, int page = 1, int size = 10)
         {
-            var result = await _service.List(name, page, size);
-
+            var result = await _service.PagedList(name, page, size);
             return View(result);
         }
     }
