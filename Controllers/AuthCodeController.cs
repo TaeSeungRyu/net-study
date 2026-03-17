@@ -37,5 +37,22 @@ namespace MemberApi.Controllers
                 return NotFound();
             return Ok(new ApiResponse<Auth>(true, auth));
         }
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] Auth auth)
+        {
+            var result = await _service.Create(auth);
+            return Ok(new ApiResponse<Auth>(true, result));
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(string id, [FromBody] Auth auth)
+        {
+            var result = await _service.Update(id, auth);
+            if (result == null)
+                return NotFound();
+
+            return Ok(new ApiResponse<Auth>(true, result));
+        }        
     }
 }
