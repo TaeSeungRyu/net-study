@@ -10,8 +10,8 @@ namespace MemberApi.Security
 {
     public class JwtTokenService
     {
-        private readonly string _secret = MemberApi.Constants.Constants.JwtSecret;
-        private readonly string _issuer = MemberApi.Constants.Constants.JwtIssuer;
+        private readonly string _secret = MyJwtConstants.JwtSecret;
+        private readonly string _issuer = MyJwtConstants.JwtIssuer;
 
         public string GenerateToken(User user)
         {

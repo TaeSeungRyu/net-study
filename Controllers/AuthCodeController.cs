@@ -53,6 +53,16 @@ namespace MemberApi.Controllers
                 return NotFound();
 
             return Ok(new ApiResponse<Auth>(true, result));
-        }        
+        }    
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(string id)
+        {
+            var result = await _service.Delete(id);
+            if (!result)
+                return NotFound();
+
+            return Ok(new ApiResponse<bool>(true, result));
+        }
     }
 }

@@ -104,6 +104,13 @@ namespace MemberApi.Services
                 }
             );
             return result;
-        }        
+        }     
+
+        //삭제
+        public async Task<bool> Delete(string id)
+        {
+            var result = await _auths.DeleteOneAsync(x => x.id == id);
+            return result.DeletedCount > 0;
+        }   
     }
 }
