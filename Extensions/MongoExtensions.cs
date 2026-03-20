@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Options;
 using MongoDB.Driver;
+using MemberApi.Config;
 
 namespace MemberApi.Extensions
 {
@@ -6,9 +8,11 @@ namespace MemberApi.Extensions
     {
         public static IServiceCollection AddMongo(this IServiceCollection services)
         {
-            services.AddSingleton<IMongoClient>(
-                new MongoClient("mongodb://root:rootpassword@localhost:27017/appdb?authSource=admin")
-            );
+            services.AddSingleton<IMongoClient>(sp =>
+            {
+                var settings = sp.GetRequiredService<IOptions<MongoDbSettings>>().Value;
+                return new MongoClient(settings.ConnectionString);
+            });
 
             return services;
         }
