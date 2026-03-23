@@ -29,6 +29,8 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseAccessLog();
+
 
 app.MapControllers();
 
