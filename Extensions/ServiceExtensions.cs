@@ -11,6 +11,7 @@ namespace MemberApi.Extensions
             services.AddScoped<AuthService>();
             services.AddScoped<AuthCodeService>();
             services.AddScoped<JwtTokenService>();
+            services.AddScoped<PostService>();
 
             return services;
         }
