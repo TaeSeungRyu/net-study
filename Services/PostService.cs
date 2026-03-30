@@ -106,5 +106,26 @@ namespace MemberApi.Services
             await _connection.CloseAsync();
             return affected > 0;
         }
+
+        public async Task<bool> UpdateAsync(Post post)
+        {
+            await _connection.OpenAsync();
+
+            var query = @"
+                UPDATE posts
+                SET title = @title, content = @content
+                WHERE id = @id
+            ";
+
+            using var cmd = new NpgsqlCommand(query, _connection);
+            cmd.Parameters.AddWithValue("id", post.Id);
+            cmd.Parameters.AddWithValue("title", post.Title);
+            cmd.Parameters.AddWithValue("content", post.Content);
+
+            var affected = await cmd.ExecuteNonQueryAsync();
+
+            await _connection.CloseAsync();
+            return affected > 0;
+        }
     }
 }

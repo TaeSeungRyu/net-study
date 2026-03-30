@@ -46,5 +46,15 @@ namespace MemberApi.Controllers
 
             return Ok();
         }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] Post post)
+        {
+            post.Id = id;
+            var success = await _postService.UpdateAsync(post);
+            if (!success) return NotFound();
+
+            return Ok();
+        }
     }
 }
