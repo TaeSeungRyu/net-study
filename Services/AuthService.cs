@@ -1,52 +1,45 @@
-using MemberApi.Models;
+using MemberApi.Exceptions;
+using MemberApi.Models.Dtos;
+using MemberApi.Repositories;
 using MemberApi.Security;
-using MongoDB.Driver;
 
 namespace MemberApi.Services
 {
     public class AuthService
     {
-        private readonly IMongoCollection<User> _users;
-        private readonly JwtTokenService _jwtService;
+        private readonly IUserRepository _users;
+        private readonly JwtTokenService _jwt;
+        private readonly ILogger<AuthService> _logger;
 
-        public AuthService(IMongoClient client)
+        public AuthService(
+            IUserRepository users,
+            JwtTokenService jwt,
+            ILogger<AuthService> logger)
         {
-            var database = client.GetDatabase("appdb");
-            _users = database.GetCollection<User>("user");
-            _jwtService = new JwtTokenService();
+            _users = users;
+            _jwt = jwt;
+            _logger = logger;
         }
 
-        public async Task<User?> ValidateUser(string username, string password)
+        public async Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken ct = default)
         {
-            // Console.WriteLine("Hello World");
-            // Console.WriteLine($"값: {username} {password}");
-            var user = await _users
-                .Find(x => x.username == username)
-                .FirstOrDefaultAsync();
-            if (user == null)
-                return null;
-
-            if (!PasswordUtil.ComparePassword(password, user.password))
-                return null;
-
-            return user;
-        }
-
-        public async Task<object?> GenerateToken(string username, string password)
-        {
-            var user = await ValidateUser(username, password);
-            if (user == null)
-                return null;
-                
-            var token = _jwtService.GenerateToken(user);
-            return new
+            var user = await _users.GetByUsernameAsync(request.Username, ct);
+            if (user is null || !PasswordUtil.VerifyPassword(request.Password, user.Password))
             {
-                token,
-                user = new
+                _logger.LogInformation("Login failed for {Username}", request.Username);
+                throw new UnauthorizedException("아이디 또는 비밀번호가 올바르지 않습니다.");
+            }
+
+            var token = _jwt.GenerateToken(user);
+
+            return new LoginResponse
+            {
+                Token = token,
+                User = new UserSummary
                 {
-                    user.id,
-                    user.username,
-                    user.name
+                    Id = user.Id ?? string.Empty,
+                    Username = user.Username,
+                    Name = user.Name
                 }
             };
         }
