@@ -45,25 +45,5 @@ app.MapControllerRoute(
     pattern: "{controller=AuthCode}/{action=Index}/{id?}"
 );
 
-// using (var scope = app.Services.CreateScope())
-// {
-//     var settings = scope.ServiceProvider.GetRequiredService<IOptions<PostgresSettings>>().Value;
-
-//     try
-//     {
-//         using var conn = new NpgsqlConnection(settings.ConnectionString);
-//         conn.Open();
-
-//         using var cmd = new NpgsqlCommand("SELECT 1", conn);
-//         var result = cmd.ExecuteScalar();
-
-//         Console.WriteLine($"[Postgres] 앱 시작 시 연결 성공 - SELECT 1 결과: {result}");
-//     }
-//     catch (Exception ex)
-//     {
-//         Console.WriteLine($"[Postgres] 앱 시작 시 연결 실패: {ex.Message}");
-//         throw;
-//     }
-// }
 
 app.Run();

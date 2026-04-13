@@ -48,3 +48,4 @@ coverage/
 
 # Package lock
 packages/
+.claude

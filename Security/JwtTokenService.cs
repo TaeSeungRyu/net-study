@@ -1,48 +1,50 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using MemberApi.Models;
+using MemberApi.Config;
+using MemberApi.Models.Entities;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using MemberApi.Constants;
-
 
 namespace MemberApi.Security
 {
     public class JwtTokenService
     {
-        private readonly string _secret = MyJwtConstants.JwtSecret;
-        private readonly string _issuer = MyJwtConstants.JwtIssuer;
+        private readonly JwtSettings _settings;
+
+        public JwtTokenService(IOptions<JwtSettings> options)
+        {
+            _settings = options.Value;
+        }
 
         public string GenerateToken(User user)
         {
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, user.id ?? ""),
-                new Claim(ClaimTypes.Name, user.username),
+                new(ClaimTypes.NameIdentifier, user.Id ?? string.Empty),
+                new(ClaimTypes.Name, user.Username),
             };
-            if (user.role != null)
+
+            if (user.Role is { Count: > 0 })
             {
-                foreach (var auth in user.role)
+                foreach (var role in user.Role)
                 {
-                    claims.Add(new Claim(ClaimTypes.Role, auth));
+                    claims.Add(new Claim(ClaimTypes.Role, role));
                 }
-                Console.WriteLine($"값: {user.username} {user.password}");
-                Console.WriteLine($"값: {string.Join(", ", user.role)}");
             }
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(_secret)
-            );
-            var creds = new SigningCredentials(
-                key,
-                SecurityAlgorithms.HmacSha256
-            );
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
             var token = new JwtSecurityToken(
-                issuer: _issuer,
-                audience: _issuer,
+                issuer: _settings.Issuer,
+                audience: _settings.Audience,
                 claims: claims,
-                expires: DateTime.Now.AddHours(2),
+                notBefore: DateTime.UtcNow,
+                expires: DateTime.UtcNow.AddHours(_settings.ExpiresInHours),
                 signingCredentials: creds
             );
+
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
