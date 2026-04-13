@@ -1,35 +1,43 @@
-namespace MemberApi.Middleware;
-public class AccessLogMiddleware
+using System.Diagnostics;
+
+namespace MemberApi.Middleware
 {
-    private readonly RequestDelegate _next;
-
-    public AccessLogMiddleware(RequestDelegate next)
+    public class AccessLogMiddleware
     {
-        _next = next;
-    }
+        private readonly RequestDelegate _next;
+        private readonly ILogger<AccessLogMiddleware> _logger;
 
-    public async Task InvokeAsync(HttpContext context)
-    {
-        var method = context.Request.Method;
-        var path = context.Request.Path;
-        var queryString = context.Request.QueryString;
-        var ip = context.Connection.RemoteIpAddress?.ToString();
-        var userAgent = context.Request.Headers["User-Agent"].ToString();
-        var requestedAt = DateTime.Now;
+        public AccessLogMiddleware(RequestDelegate next, ILogger<AccessLogMiddleware> logger)
+        {
+            _next = next;
+            _logger = logger;
+        }
 
-        //요청 전 로그 출력
-        Console.WriteLine(
-            $"[Access] Time: {requestedAt:yyyy-MM-dd HH:mm:ss}, IP: {ip}, Method: {method}, Path: {path}{queryString}, UserAgent: {userAgent}"
-        );
+        public async Task InvokeAsync(HttpContext context)
+        {
+            var sw = Stopwatch.StartNew();
+            var request = context.Request;
+            var ip = context.Connection.RemoteIpAddress?.ToString();
+            var userAgent = request.Headers.UserAgent.ToString();
 
-        //다음 미들웨어로 요청을 전달
-        await _next(context);
-
-        //응답 후 로그 출력
-        var statusCode = context.Response.StatusCode;
-        var respondedAt = DateTime.Now;
-        Console.WriteLine(
-            $"[Response] Time: {respondedAt:yyyy-MM-dd HH:mm:ss}, StatusCode: {statusCode}, Path: {path}{queryString}"
-        );        
+            try
+            {
+                await _next(context);
+            }
+            finally
+            {
+                sw.Stop();
+                _logger.LogInformation(
+                    "{Method} {Path}{QueryString} from {Ip} -> {StatusCode} in {ElapsedMs}ms ({UserAgent})",
+                    request.Method,
+                    request.Path,
+                    request.QueryString,
+                    ip,
+                    context.Response.StatusCode,
+                    sw.ElapsedMilliseconds,
+                    userAgent
+                );
+            }
+        }
     }
 }

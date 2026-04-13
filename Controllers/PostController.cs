@@ -1,11 +1,12 @@
-using Microsoft.AspNetCore.Mvc;
-using MemberApi.Models;
+using MemberApi.Models.Common;
+using MemberApi.Models.Dtos;
 using MemberApi.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace MemberApi.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/posts")]
     public class PostController : ControllerBase
     {
         private readonly PostService _postService;
@@ -16,45 +17,43 @@ namespace MemberApi.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<ActionResult<ApiResponse<List<PostResponse>>>> GetAll(CancellationToken ct)
         {
-            var posts = await _postService.GetAllAsync();
-            return Ok(posts);
+            var posts = await _postService.GetAllAsync(ct);
+            return Ok(ApiResponse<List<PostResponse>>.Ok(posts));
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> Get(int id)
+        [HttpGet("{id:int}")]
+        public async Task<ActionResult<ApiResponse<PostResponse>>> Get(int id, CancellationToken ct)
         {
-            var post = await _postService.GetByIdAsync(id);
-            if (post == null) return NotFound();
-
-            return Ok(post);
+            var post = await _postService.GetAsync(id, ct);
+            return Ok(ApiResponse<PostResponse>.Ok(post));
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] Post post)
+        public async Task<ActionResult<ApiResponse<object>>> Create(
+            [FromBody] CreatePostRequest request,
+            CancellationToken ct)
         {
-            var id = await _postService.CreateAsync(post);
-            return Ok(new { id });
+            var id = await _postService.CreateAsync(request, ct);
+            return CreatedAtAction(nameof(Get), new { id }, ApiResponse<object>.Ok(new { id }));
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
+        [HttpPut("{id:int}")]
+        public async Task<ActionResult<ApiResponse<object>>> Update(
+            int id,
+            [FromBody] UpdatePostRequest request,
+            CancellationToken ct)
         {
-            var success = await _postService.DeleteAsync(id);
-            if (!success) return NotFound();
-
-            return Ok();
+            await _postService.UpdateAsync(id, request, ct);
+            return Ok(ApiResponse<object>.Ok(null, "Post updated successfully"));
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] Post post)
+        [HttpDelete("{id:int}")]
+        public async Task<ActionResult<ApiResponse<object>>> Delete(int id, CancellationToken ct)
         {
-            post.Id = id;
-            var success = await _postService.UpdateAsync(post);
-            if (!success) return NotFound();
-
-            return Ok();
+            await _postService.DeleteAsync(id, ct);
+            return Ok(ApiResponse<object>.Ok(null, "Post deleted successfully"));
         }
     }
 }

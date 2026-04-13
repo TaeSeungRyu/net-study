@@ -1,41 +1,59 @@
 using System.Net;
 using System.Text.Json;
-namespace MemberApi.MiddleWare;
+using MemberApi.Exceptions;
+using MemberApi.Models.Common;
 
-public class GlobalExceptionMiddleware
+namespace MemberApi.Middleware
 {
-    private readonly RequestDelegate _next;
-
-    public GlobalExceptionMiddleware(RequestDelegate next)
+    public class GlobalExceptionMiddleware
     {
-        _next = next;
-    }
-
-    public async Task Invoke(HttpContext context)
-    {
-        try
+        private readonly RequestDelegate _next;
+        private readonly ILogger<GlobalExceptionMiddleware> _logger;
+        private static readonly JsonSerializerOptions JsonOptions = new()
         {
-            await _next(context);
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+        };
+
+        public GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger)
+        {
+            _next = next;
+            _logger = logger;
         }
-        catch (Exception ex)
+
+        public async Task InvokeAsync(HttpContext context)
         {
-            await HandleException(context, ex);
+            try
+            {
+                await _next(context);
+            }
+            catch (Exception ex)
+            {
+                await HandleAsync(context, ex);
+            }
         }
-    }
 
-    private static Task HandleException(HttpContext context, Exception ex)
-    {
-        
-        Console.WriteLine($"값: {ex.Message}");
-        var result = JsonSerializer.Serialize(new
+        private async Task HandleAsync(HttpContext context, Exception ex)
         {
-            success = false,
-            message = ex.Message
-        });
+            var (statusCode, message, logLevel) = ex switch
+            {
+                ValidationException => (HttpStatusCode.BadRequest, ex.Message, LogLevel.Information),
+                UnauthorizedException => (HttpStatusCode.Unauthorized, ex.Message, LogLevel.Information),
+                NotFoundException => (HttpStatusCode.NotFound, ex.Message, LogLevel.Information),
+                ConflictException => (HttpStatusCode.Conflict, ex.Message, LogLevel.Information),
+                _ => (HttpStatusCode.InternalServerError, "서버 오류가 발생했습니다.", LogLevel.Error)
+            };
 
-        context.Response.ContentType = "application/json";
-        context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            _logger.Log(logLevel, ex, "Request failed: {Path}", context.Request.Path);
 
-        return context.Response.WriteAsync(result);
+            context.Response.ContentType = "application/json";
+            context.Response.StatusCode = (int)statusCode;
+
+            var body = JsonSerializer.Serialize(
+                ApiResponse<object>.Fail(message),
+                JsonOptions
+            );
+
+            await context.Response.WriteAsync(body);
+        }
     }
 }

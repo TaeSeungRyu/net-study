@@ -1,4 +1,4 @@
-@model MemberApi.Models.PagedResult<MemberApi.Models.Auth>
+@model MemberApi.Models.Common.PagedResult<MemberApi.Models.Dtos.AuthCodeResponse>
 
 <h2>Auth Code List</h2>
 
@@ -14,9 +14,9 @@
         @foreach (var item in Model.Items)
         {
             <tr>
-                <td>@item.code</td>
-                <td>@item.name</td>
-                <td>@item.desc</td>
+                <td>@item.Code</td>
+                <td>@item.Name</td>
+                <td>@item.Desc</td>
             </tr>
         }
     </tbody>
@@ -27,12 +27,12 @@
 </div>
 
 <div>
-    @if (Model.Page > 1)
+    @if (Model.HasPrevious)
     {
         <a href="?page=@(Model.Page-1)">Prev</a>
     }
 
-    @if (Model.Page < Model.TotalPages)
+    @if (Model.HasNext)
     {
         <a href="?page=@(Model.Page+1)">Next</a>
     }

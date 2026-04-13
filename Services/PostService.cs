@@ -1,117 +1,68 @@
-using Npgsql;
-using MemberApi.Models;
-using MemberApi.Config;
-using Microsoft.Extensions.Options;
+using MemberApi.Exceptions;
+using MemberApi.Models.Dtos;
+using MemberApi.Models.Entities;
+using MemberApi.Repositories;
 
 namespace MemberApi.Services
 {
-    public class PostService    
+    public class PostService
     {
+        private readonly IPostRepository _repo;
 
-        private readonly string _connectionString;
-
-        // 생성자에서 IOptions를 통해 설정을 주입받습니다.
-        public PostService(IOptions<PostgresSettings> postgresOptions)
+        public PostService(IPostRepository repo)
         {
-            var settings = postgresOptions.Value;
-            // 연결 문자열을 한 번만 조립하여 보관합니다.
-            _connectionString = $"Host={settings.Host};Port={settings.Port};Database={settings.Database};Username={settings.Username};Password={settings.Password}";
+            _repo = repo;
         }
 
-        // 이제 도우미 메서드가 매우 간결해집니다.
-        private NpgsqlConnection CreateConnection() 
+        public async Task<List<PostResponse>> GetAllAsync(CancellationToken ct = default)
         {
-            return new NpgsqlConnection(_connectionString);
+            var items = await _repo.GetAllAsync(ct);
+            return items.Select(ToResponse).ToList();
         }
-        public async Task<List<Post>> GetAllAsync()
+
+        public async Task<PostResponse> GetAsync(int id, CancellationToken ct = default)
         {
-            var result = new List<Post>();
-            // using 문을 사용하여 예외가 발생해도 연결이 확실히 닫히도록 합니다.
-            using var conn = CreateConnection();
-            await conn.OpenAsync();
+            var post = await _repo.GetByIdAsync(id, ct)
+                ?? throw new NotFoundException("게시글을 찾을 수 없습니다.");
+            return ToResponse(post);
+        }
 
-            var query = "SELECT id, title, content FROM posts";
-            using var cmd = new NpgsqlCommand(query, conn);
-            using var reader = await cmd.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
+        public async Task<int> CreateAsync(CreatePostRequest request, CancellationToken ct = default)
+        {
+            var post = new Post
             {
-                result.Add(new Post
-                {
-                    Id = reader.GetInt32(0),
-                    Title = reader.GetString(1),
-                    Content = reader.GetString(2)
-                });
-            }
-            return result;
+                Title = request.Title,
+                Content = request.Content
+            };
+            return await _repo.InsertAsync(post, ct);
         }
 
-        public async Task<Post?> GetByIdAsync(int id)
+        public async Task UpdateAsync(int id, UpdatePostRequest request, CancellationToken ct = default)
         {
-            using var conn = CreateConnection();
-            await conn.OpenAsync();
-
-            var query = "SELECT id, title, content FROM posts WHERE id = @id";
-            using var cmd = new NpgsqlCommand(query, conn);
-            cmd.Parameters.AddWithValue("id", id);
-
-            using var reader = await cmd.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
+            var updated = await _repo.UpdateAsync(new Post
             {
-                return new Post
-                {
-                    Id = reader.GetInt32(0),
-                    Title = reader.GetString(1),
-                    Content = reader.GetString(2)
-                };
-            }
-            return null;
+                Id = id,
+                Title = request.Title,
+                Content = request.Content
+            }, ct);
+
+            if (!updated)
+                throw new NotFoundException("게시글을 찾을 수 없습니다.");
         }
 
-        public async Task<int> CreateAsync(Post post)
+        public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
-            using var conn = CreateConnection();
-            await conn.OpenAsync();
-
-            // 단일 쿼리는 트랜잭션 없이 RETURNING id를 사용하는 것이 효율적입니다.
-            var query = "INSERT INTO posts (title, content) VALUES (@title, @content) RETURNING id";
-
-            using var cmd = new NpgsqlCommand(query, conn);
-            cmd.Parameters.AddWithValue("title", post.Title);
-            cmd.Parameters.AddWithValue("content", post.Content);
-
-            var result = await cmd.ExecuteScalarAsync();
-            return result != null ? (int)result : throw new Exception("Insert failed");
+            var deleted = await _repo.DeleteAsync(id, ct);
+            if (!deleted)
+                throw new NotFoundException("게시글을 찾을 수 없습니다.");
         }
 
-        public async Task<bool> UpdateAsync(Post post)
-        {
-            using var conn = CreateConnection();
-            await conn.OpenAsync();
-
-            var query = "UPDATE posts SET title = @title, content = @content WHERE id = @id";
-
-            using var cmd = new NpgsqlCommand(query, conn);
-            cmd.Parameters.AddWithValue("id", post.Id);
-            cmd.Parameters.AddWithValue("title", post.Title);
-            cmd.Parameters.AddWithValue("content", post.Content);
-
-            var affected = await cmd.ExecuteNonQueryAsync();
-            return affected > 0;
-        }
-
-        public async Task<bool> DeleteAsync(int id)
-        {
-            using var conn = CreateConnection();
-            await conn.OpenAsync();
-
-            var query = "DELETE FROM posts WHERE id = @id";
-            using var cmd = new NpgsqlCommand(query, conn);
-            cmd.Parameters.AddWithValue("id", id);
-
-            var affected = await cmd.ExecuteNonQueryAsync();
-            return affected > 0;
-        }
+        private static PostResponse ToResponse(Post p)
+            => new()
+            {
+                Id = p.Id,
+                Title = p.Title,
+                Content = p.Content
+            };
     }
 }

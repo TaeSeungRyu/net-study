@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using MemberApi.Models;
+using MemberApi.Models.Common;
+using MemberApi.Models.Dtos;
 using MemberApi.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace MemberApi.Controllers
 {
@@ -10,76 +10,53 @@ namespace MemberApi.Controllers
     public class UserController : ControllerBase
     {
         private readonly UserService _userService;
+
         public UserController(UserService userService)
         {
             _userService = userService;
         }
 
         [HttpGet]
-        [Route("list")]
-       // [Authorize(Roles = "admin")] //테스트
-        public async Task<ApiResponse<List<UserResponse>>> List(
+        public async Task<ActionResult<ApiResponse<List<UserResponse>>>> List(
             [FromQuery] int page = 1,
-            [FromQuery] int size = 10
-        )
+            [FromQuery] int size = 10,
+            CancellationToken ct = default)
         {
-            var users = await _userService.List(page, size);
-            return new ApiResponse<List<UserResponse>>(true, users);
+            var users = await _userService.ListAsync(page, size, ct);
+            return Ok(ApiResponse<List<UserResponse>>.Ok(users));
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<UserResponse>>> Find(string id)
+        public async Task<ActionResult<ApiResponse<UserResponse>>> Get(string id, CancellationToken ct)
         {
-            var user = await _userService.Find(id);
-            if (user == null)
-                return NotFound(new ApiResponse<UserResponse>(false, null, "User not found"));
-            return Ok(new ApiResponse<UserResponse>(true, user));
+            var user = await _userService.GetAsync(id, ct);
+            return Ok(ApiResponse<UserResponse>.Ok(user));
         }
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<UserResponse>>> Create([FromBody] User user)
+        public async Task<ActionResult<ApiResponse<UserResponse>>> Create(
+            [FromBody] CreateUserRequest request,
+            CancellationToken ct)
         {
-            try
-            {
-                var createdUser = await _userService.Create(user);
-                return Ok(new ApiResponse<UserResponse>(true, createdUser));
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new ApiResponse<UserResponse>(false, null, ex.Message));
-            }
+            var created = await _userService.CreateAsync(request, ct);
+            return CreatedAtAction(nameof(Get), new { id = created.Id }, ApiResponse<UserResponse>.Ok(created));
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<UserResponse>>> Update(string id, [FromBody] User user)
+        public async Task<ActionResult<ApiResponse<object>>> Update(
+            string id,
+            [FromBody] UpdateUserRequest request,
+            CancellationToken ct)
         {
-            try
-            {
-                await _userService.Update(id, user);
-                return Ok(new ApiResponse<UserResponse>(true, null, "User updated successfully"));
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new ApiResponse<UserResponse>(false, null, ex.Message));
-            }
+            await _userService.UpdateAsync(id, request, ct);
+            return Ok(ApiResponse<object>.Ok(null, "User updated successfully"));
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(string id)
+        public async Task<ActionResult<ApiResponse<object>>> Delete(string id, CancellationToken ct)
         {
-            try
-            {
-                await _userService.Delete(id);
-                return Ok(new ApiResponse<UserResponse>(true, null, "User deleted successfully"));
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new ApiResponse<UserResponse>(false, null, ex.Message));
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new ApiResponse<UserResponse>(false, null, ex.Message));
-            }
-        }        
+            await _userService.DeleteAsync(id, ct);
+            return Ok(ApiResponse<object>.Ok(null, "User deleted successfully"));
+        }
     }
 }

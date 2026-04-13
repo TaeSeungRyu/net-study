@@ -1,27 +1,22 @@
+using System.Text.Json;
 using MemberApi.Extensions;
-using MemberApi.MiddleWare;
-using MemberApi.Config;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.Configure<MongoDbSettings>(
-    builder.Configuration.GetSection("MongoDB")
-);
+builder.Services
+    .AddControllersWithViews()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+    });
 
-builder.Services.Configure<PostgresSettings>(
-    builder.Configuration.GetSection("Postgres")
-);
+builder.Services.AddSwaggerWithJwt();
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-builder.Services.AddControllers();
-builder.Services.AddControllersWithViews();
-builder.Services.AddApplicationServices();
-builder.Services.AddMongo();
-builder.Services.AddPostgres();
-builder.Services.AddJwtAuth();
+builder.Services.AddMongo(builder.Configuration);
+builder.Services.AddPostgres(builder.Configuration);
+builder.Services.AddApplicationServices(builder.Configuration);
+builder.Services.AddJwtAuth(builder.Configuration);
 
 var app = builder.Build();
 
@@ -31,19 +26,17 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseGlobalExceptionHandler();
+app.UseAccessLog();
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseAccessLog();
-
 
 app.MapControllers();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=AuthCode}/{action=Index}/{id?}"
+    pattern: "{controller=ViewWithf}/{action=Index}/{id?}"
 );
-
 
 app.Run();

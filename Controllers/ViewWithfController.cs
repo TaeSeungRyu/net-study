@@ -1,4 +1,3 @@
-using MemberApi.Models;
 using MemberApi.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,9 +12,9 @@ namespace MemberApi.Controllers
             _service = service;
         }
 
-        public async Task<IActionResult> Index(string? name, int page = 1, int size = 10)
+        public async Task<IActionResult> Index(string? name, int page = 1, int size = 10, CancellationToken ct = default)
         {
-            var result = await _service.PagedList(name, page, size);
+            var result = await _service.ListAsync(name, page, size, ct);
             return View(result);
         }
     }

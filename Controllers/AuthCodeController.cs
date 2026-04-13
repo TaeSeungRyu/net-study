@@ -1,4 +1,5 @@
-using MemberApi.Models;
+using MemberApi.Models.Common;
+using MemberApi.Models.Dtos;
 using MemberApi.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,54 +16,48 @@ namespace MemberApi.Controllers
             _service = service;
         }
 
-        // 목록 조회
         [HttpGet]
-        public async Task<IActionResult> List(
+        public async Task<ActionResult<ApiResponse<PagedResult<AuthCodeResponse>>>> List(
             [FromQuery] string? name,
             [FromQuery] int page = 1,
-            [FromQuery] int size = 10
-        )
+            [FromQuery] int size = 10,
+            CancellationToken ct = default)
         {
-            var result = await _service.List(name, page, size);
-            return Ok(new ApiResponse<List<Auth>>(true, result));
+            var result = await _service.ListAsync(name, page, size, ct);
+            return Ok(ApiResponse<PagedResult<AuthCodeResponse>>.Ok(result));
         }
 
-        // 단일 조회
         [HttpGet("{id}")]
-        public async Task<IActionResult> Get(string id)
+        public async Task<ActionResult<ApiResponse<AuthCodeResponse>>> Get(string id, CancellationToken ct)
         {
-            var auth = await _service.Get(id);
-
-            if (auth == null)
-                return NotFound();
-            return Ok(new ApiResponse<Auth>(true, auth));
+            var item = await _service.GetAsync(id, ct);
+            return Ok(ApiResponse<AuthCodeResponse>.Ok(item));
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] Auth auth)
+        public async Task<ActionResult<ApiResponse<AuthCodeResponse>>> Create(
+            [FromBody] CreateAuthCodeRequest request,
+            CancellationToken ct)
         {
-            var result = await _service.Create(auth);
-            return Ok(new ApiResponse<Auth>(true, result));
+            var created = await _service.CreateAsync(request, ct);
+            return CreatedAtAction(nameof(Get), new { id = created.Id }, ApiResponse<AuthCodeResponse>.Ok(created));
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(string id, [FromBody] Auth auth)
+        public async Task<ActionResult<ApiResponse<AuthCodeResponse>>> Update(
+            string id,
+            [FromBody] UpdateAuthCodeRequest request,
+            CancellationToken ct)
         {
-            var result = await _service.Update(id, auth);
-            if (result == null)
-                return NotFound();
-
-            return Ok(new ApiResponse<Auth>(true, result));
-        }    
+            var updated = await _service.UpdateAsync(id, request, ct);
+            return Ok(ApiResponse<AuthCodeResponse>.Ok(updated));
+        }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(string id)
+        public async Task<ActionResult<ApiResponse<object>>> Delete(string id, CancellationToken ct)
         {
-            var result = await _service.Delete(id);
-            if (!result)
-                return NotFound();
-
-            return Ok(new ApiResponse<bool>(true, result));
+            await _service.DeleteAsync(id, ct);
+            return Ok(ApiResponse<object>.Ok(null, "Auth code deleted successfully"));
         }
     }
 }

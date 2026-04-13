@@ -1,139 +1,130 @@
-using MemberApi.Models;
+using MemberApi.Exceptions;
+using MemberApi.Models.Dtos;
+using MemberApi.Models.Entities;
+using MemberApi.Repositories;
 using MemberApi.Security;
-using MongoDB.Driver;
 
 namespace MemberApi.Services
 {
     public class UserService
     {
-        private readonly IMongoCollection<User> _users;
-        private readonly IMongoCollection<Auth> _auths;
+        private readonly IUserRepository _users;
 
-        public UserService(IMongoClient client)
+        public UserService(IUserRepository users)
         {
-            var database = client.GetDatabase("appdb");
-            _users = database.GetCollection<User>("user");
-            _auths = database.GetCollection<Auth>("auth");
+            _users = users;
         }
-        public async Task<List<UserResponse>> List(int page, int size)
+
+        public async Task<List<UserResponse>> ListAsync(int page, int size, CancellationToken ct = default)
         {
-            var skip = (page - 1) * size;
+            var items = await _users.ListWithRolesAsync(page, size, ct);
 
-            var result = await _users.Aggregate()
-                .Lookup<User, Auth, UserWithAuth>(
-                    foreignCollection: _auths,
-                    localField: u => u.role,
-                    foreignField: a => a.code,
-                    @as: x => x.roles
-                )
-                .Skip(skip)
-                .Limit(size)
-                .ToListAsync();
+            return items.Select(ToResponse).ToList();
+        }
 
-            return result.Select(u => new UserResponse
-            {
-                id = u.id!,
-                username = u.username,
-                name = u.name,
-                email = u.email,
-                phone = u.phone,
-                auth = u.roles
-            }).ToList();
-        }        
-
-        public async Task<UserResponse?> Find(string id)
+        public async Task<UserResponse> GetAsync(string id, CancellationToken ct = default)
         {
-            var user = await _users
-                .Find(x => x.id == id)
-                .FirstOrDefaultAsync();
+            var user = await _users.GetByIdAsync(id, ct)
+                ?? throw new NotFoundException("사용자를 찾을 수 없습니다.");
 
-            if (user == null)
-                return null;
+            var roles = user.Role is { Count: > 0 }
+                ? await _users.GetRolesAsync(user.Role, ct)
+                : Array.Empty<AuthCode>();
 
-            List<Auth> authList = new();
+            return ToResponse(user, roles);
+        }
 
-            if (user.role != null && user.role.Count > 0)
+        public async Task<UserResponse> CreateAsync(CreateUserRequest request, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(request.Username))
+                throw new ValidationException("아이디는 필수입니다.");
+            if (string.IsNullOrWhiteSpace(request.Password))
+                throw new ValidationException("비밀번호는 필수입니다.");
+
+            var existing = await _users.GetByUsernameAsync(request.Username, ct);
+            if (existing is not null)
+                throw new ConflictException("이미 존재하는 사용자 이름입니다.");
+
+            var now = DateTime.UtcNow;
+            var user = new User
             {
-                authList = await _auths
-                    .Find(x => user.role.Contains(x.code))
-                    .ToListAsync();
-            }
-
-            return new UserResponse
-            {
-                id = user.id!,
-                username = user.username,
-                name = user.name,
-                email = user.email,
-                phone = user.phone,
-                auth = authList
+                Username = request.Username,
+                Password = PasswordUtil.HashPassword(request.Password),
+                Name = request.Name,
+                Email = request.Email,
+                Phone = request.Phone,
+                ProfileImage = request.ProfileImage,
+                Role = request.Role,
+                CreatedAt = now,
+                UpdatedAt = now
             };
+
+            await _users.InsertAsync(user, ct);
+
+            return ToResponse(user, Array.Empty<AuthCode>());
         }
 
-        public async Task<UserResponse> Create(User user)
+        public async Task UpdateAsync(string id, UpdateUserRequest request, CancellationToken ct = default)
         {
+            var user = await _users.GetByIdAsync(id, ct)
+                ?? throw new NotFoundException("사용자를 찾을 수 없습니다.");
 
-            if (string.IsNullOrWhiteSpace(user.username))
-                throw new ArgumentException("아이디는 필수입니다.");
+            user.Name = request.Name ?? user.Name;
+            user.Email = request.Email ?? user.Email;
+            user.Phone = request.Phone ?? user.Phone;
+            user.ProfileImage = request.ProfileImage ?? user.ProfileImage;
+            user.Role = request.Role ?? user.Role;
 
-            if (string.IsNullOrWhiteSpace(user.password))
-                throw new ArgumentException("비밀번호는 필수입니다.");
-
-            var existingUser = await _users
-                .Find(x => x.username == user.username)
-                .FirstOrDefaultAsync();
-            if (existingUser != null)
+            if (!string.IsNullOrWhiteSpace(request.Password))
             {
-                throw new InvalidOperationException("이미 존재하는 사용자 이름입니다.");
+                user.Password = PasswordUtil.HashPassword(request.Password);
             }
 
-            user.password = PasswordUtil.HashPassword(user.password);
+            user.UpdatedAt = DateTime.UtcNow;
 
-            await _users.InsertOneAsync(user);
-            return new UserResponse
+            await _users.ReplaceAsync(user, ct);
+        }
+
+        public async Task DeleteAsync(string id, CancellationToken ct = default)
+        {
+            var deleted = await _users.DeleteAsync(id, ct);
+            if (!deleted)
+                throw new NotFoundException("사용자를 찾을 수 없습니다.");
+        }
+
+        private static UserResponse ToResponse(UserWithRoles u)
+            => new()
             {
-                id = user.id!,
-                username = user.username,
-                name = user.name,
-                email = user.email,
-                phone = user.phone
+                Id = u.Id ?? string.Empty,
+                Username = u.Username,
+                Name = u.Name,
+                Email = u.Email,
+                Phone = u.Phone,
+                ProfileImage = u.ProfileImage,
+                Roles = (u.Roles ?? new List<AuthCode>()).Select(ToAuthDto).ToList()
             };
-        }
 
-        public async Task Update(string id, User user)
-        {
-            var existingUser = await _users
-                .Find(x => x.id == id)
-                .FirstOrDefaultAsync();
-            if (existingUser == null)
-                throw new KeyNotFoundException("사용자를 찾을 수 없습니다.");
-            if (!string.IsNullOrWhiteSpace(user.password))
+        private static UserResponse ToResponse(User u, IReadOnlyList<AuthCode> roles)
+            => new()
             {
-                user.password = PasswordUtil.HashPassword(user.password);
-            }
-            else
+                Id = u.Id ?? string.Empty,
+                Username = u.Username,
+                Name = u.Name,
+                Email = u.Email,
+                Phone = u.Phone,
+                ProfileImage = u.ProfileImage,
+                Roles = roles.Select(ToAuthDto).ToList()
+            };
+
+        private static AuthCodeResponse ToAuthDto(AuthCode a)
+            => new()
             {
-                user.password = existingUser.password;
-            }
-            user.username = existingUser.username; // 아이디는 변경 불가
-            user.id = id;
-            user.updatedAt = DateTime.UtcNow;
-            await _users.ReplaceOneAsync(x => x.id == id, user);
-        }
-        
-        public async Task Delete(string id)
-        {
-            var existingUser = await _users
-                .Find(x => x.id == id)
-                .FirstOrDefaultAsync();
-
-            if (existingUser == null)
-                throw new KeyNotFoundException("사용자를 찾을 수 없습니다.");
-
-            var result = await _users.DeleteOneAsync(x => x.id == id);
-            if (result.DeletedCount == 0){
-                throw new InvalidOperationException("사용자 삭제에 실패했습니다.");
-            }
-        }        
+                Id = a.Id ?? string.Empty,
+                Code = a.Code,
+                Name = a.Name,
+                Desc = a.Desc,
+                CreatedAt = a.CreatedAt,
+                UpdatedAt = a.UpdatedAt
+            };
     }
 }

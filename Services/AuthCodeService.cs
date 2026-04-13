@@ -1,116 +1,82 @@
-using MemberApi.Models;
-using MongoDB.Driver;
+using MemberApi.Exceptions;
+using MemberApi.Models.Common;
+using MemberApi.Models.Dtos;
+using MemberApi.Models.Entities;
+using MemberApi.Repositories;
 
 namespace MemberApi.Services
 {
     public class AuthCodeService
     {
-        private readonly IMongoCollection<Auth> _auths;
+        private readonly IAuthCodeRepository _repo;
 
-        public AuthCodeService(IMongoClient client)
+        public AuthCodeService(IAuthCodeRepository repo)
         {
-            var database = client.GetDatabase("appdb");
-            _auths = database.GetCollection<Auth>("auth");
+            _repo = repo;
         }
 
-        // 목록 조회 (페이징 + 이름 검색)
-        public async Task<List<Auth>> List(string? name, int page, int size)
+        public async Task<PagedResult<AuthCodeResponse>> ListAsync(string? name, int page, int size, CancellationToken ct = default)
         {
-            var skip = (page - 1) * size;
-            var filter = Builders<Auth>.Filter.Empty;
-            if (!string.IsNullOrWhiteSpace(name))
+            var result = await _repo.ListAsync(name, page, size, ct);
+            return new PagedResult<AuthCodeResponse>
             {
-                filter = Builders<Auth>.Filter.Regex(
-                    x => x.name,
-                    new MongoDB.Bson.BsonRegularExpression(name, "i")
-                );
-            }
-            var result = await _auths
-                .Find(filter)
-                .Skip(skip)
-                .Limit(size)
-                .SortByDescending(x => x.createdAt)
-                .ToListAsync();
-
-            return result;
-        }
-
-        public async Task<PagedResult<Auth>> PagedList(string? name, int page, int size)
-        {
-            var filter = Builders<Auth>.Filter.Empty;
-
-            if (!string.IsNullOrWhiteSpace(name))
-            {
-                filter = Builders<Auth>.Filter.Regex(x => x.name, new MongoDB.Bson.BsonRegularExpression(name, "i"));
-            }
-
-            var total = await _auths.CountDocumentsAsync(filter);
-
-            var items = await _auths
-                .Find(filter)
-                .Skip((page - 1) * size)
-                .Limit(size)
-                .ToListAsync();
-
-            return new PagedResult<Auth>
-            {
-                Items = items,
-                Page = page,
-                Size = size,
-                TotalCount = (int)total
+                Items = result.Items.Select(ToResponse).ToList(),
+                Page = result.Page,
+                Size = result.Size,
+                TotalCount = result.TotalCount
             };
-        }        
-
-        // 단일 조회
-        public async Task<Auth?> Get(string id)
-        {
-            return await _auths
-                .Find(x => x.id == id)
-                .FirstOrDefaultAsync();
         }
 
-        // 생성
-        public async Task<Auth> Create(Auth auth)
+        public async Task<AuthCodeResponse> GetAsync(string id, CancellationToken ct = default)
         {
-            // 중복 코드 체크 (선택)
-            var existing = await _auths
-                .Find(x => x.code == auth.code)
-                .FirstOrDefaultAsync();
-            if (existing != null)
+            var item = await _repo.GetByIdAsync(id, ct)
+                ?? throw new NotFoundException("권한 코드를 찾을 수 없습니다.");
+            return ToResponse(item);
+        }
+
+        public async Task<AuthCodeResponse> CreateAsync(CreateAuthCodeRequest request, CancellationToken ct = default)
+        {
+            var existing = await _repo.GetByCodeAsync(request.Code, ct);
+            if (existing is not null)
+                throw new ConflictException("이미 존재하는 코드입니다.");
+
+            var now = DateTime.UtcNow;
+            var entity = new AuthCode
             {
-                throw new InvalidOperationException("이미 존재하는 코드입니다.");
-            }
-            auth.createdAt = DateTime.UtcNow;
-            auth.updatedAt = DateTime.UtcNow;
-            auth.createDate = DateTime.UtcNow;
-            await _auths.InsertOneAsync(auth);
-            return auth;
+                Code = request.Code,
+                Name = request.Name,
+                Desc = request.Desc,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            await _repo.InsertAsync(entity, ct);
+            return ToResponse(entity);
         }
 
-        // 수정
-        public async Task<Auth?> Update(string id, Auth auth)
+        public async Task<AuthCodeResponse> UpdateAsync(string id, UpdateAuthCodeRequest request, CancellationToken ct = default)
         {
-            var update = Builders<Auth>.Update
-                .Set(x => x.name, auth.name)
-                .Set(x => x.desc, auth.desc)
-                .Set(x => x.updatedAt, DateTime.UtcNow);
+            var updated = await _repo.UpdateAsync(id, request.Name, request.Desc, ct)
+                ?? throw new NotFoundException("권한 코드를 찾을 수 없습니다.");
+            return ToResponse(updated);
+        }
 
-            var result = await _auths.FindOneAndUpdateAsync(
-                x => x.id == id,
-                update,
-                new FindOneAndUpdateOptions<Auth>
-                {
-                    ReturnDocument = ReturnDocument.After
-                }
-            );
-            return result;
-        }     
-
-        //삭제
-        public async Task<bool> Delete(string id)
+        public async Task DeleteAsync(string id, CancellationToken ct = default)
         {
-            var result = await _auths.DeleteOneAsync(x => x.id == id);
-            return result.DeletedCount > 0;
-        }   
+            var deleted = await _repo.DeleteAsync(id, ct);
+            if (!deleted)
+                throw new NotFoundException("권한 코드를 찾을 수 없습니다.");
+        }
+
+        private static AuthCodeResponse ToResponse(AuthCode a)
+            => new()
+            {
+                Id = a.Id ?? string.Empty,
+                Code = a.Code,
+                Name = a.Name,
+                Desc = a.Desc,
+                CreatedAt = a.CreatedAt,
+                UpdatedAt = a.UpdatedAt
+            };
     }
 }
