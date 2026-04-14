@@ -15,7 +15,7 @@ builder.Services.AddSwaggerWithJwt();
 
 builder.Services.AddMongo(builder.Configuration);
 builder.Services.AddPostgres(builder.Configuration);
-builder.Services.AddApplicationServices(builder.Configuration);
+builder.Services.AddApplicationServices();
 builder.Services.AddJwtAuth(builder.Configuration);
 
 var app = builder.Build();
@@ -24,6 +24,11 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+else
+{
+    app.UseHttpsRedirection();
+    app.UseHsts();
 }
 
 app.UseGlobalExceptionHandler();

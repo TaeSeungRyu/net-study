@@ -11,7 +11,8 @@ namespace MemberApi.Middleware
         private readonly ILogger<GlobalExceptionMiddleware> _logger;
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
         };
 
         public GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger)
@@ -43,13 +44,27 @@ namespace MemberApi.Middleware
                 _ => (HttpStatusCode.InternalServerError, "서버 오류가 발생했습니다.", LogLevel.Error)
             };
 
-            _logger.Log(logLevel, ex, "Request failed: {Path}", context.Request.Path);
+            var traceId = context.TraceIdentifier;
 
+            using (_logger.BeginScope(new Dictionary<string, object> { ["TraceId"] = traceId }))
+            {
+                _logger.Log(logLevel, ex, "Request failed: {Method} {Path} (TraceId={TraceId})",
+                    context.Request.Method, context.Request.Path, traceId);
+            }
+
+            if (context.Response.HasStarted)
+            {
+                // Response already started - cannot rewrite. Only log.
+                return;
+            }
+
+            context.Response.Clear();
             context.Response.ContentType = "application/json";
             context.Response.StatusCode = (int)statusCode;
+            context.Response.Headers["X-Trace-Id"] = traceId;
 
             var body = JsonSerializer.Serialize(
-                ApiResponse<object>.Fail(message),
+                new ApiResponse<object>(false, new { traceId }, message),
                 JsonOptions
             );
 

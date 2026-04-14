@@ -1,4 +1,5 @@
 using MemberApi.Data;
+using MemberApi.Models.Common;
 using MemberApi.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,8 +14,25 @@ namespace MemberApi.Repositories
             _db = db;
         }
 
-        public async Task<IReadOnlyList<Post>> GetAllAsync(CancellationToken ct = default)
-            => await _db.Posts.AsNoTracking().ToListAsync(ct);
+        public async Task<PagedResult<Post>> GetPagedAsync(int page, int size, CancellationToken ct = default)
+        {
+            var query = _db.Posts.AsNoTracking();
+
+            var total = await query.LongCountAsync(ct);
+            var items = await query
+                .OrderByDescending(x => x.Id)
+                .Skip((page - 1) * size)
+                .Take(size)
+                .ToListAsync(ct);
+
+            return new PagedResult<Post>
+            {
+                Items = items,
+                Page = page,
+                Size = size,
+                TotalCount = total
+            };
+        }
 
         public Task<Post?> GetByIdAsync(int id, CancellationToken ct = default)
             => _db.Posts.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);

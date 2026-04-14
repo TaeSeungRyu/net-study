@@ -37,28 +37,28 @@ namespace MemberApi.Repositories
             };
         }
 
-        public Task<AuthCode?> GetByIdAsync(string id, CancellationToken ct = default)
-            => _db.AuthCodes.Find(x => x.Id == id).FirstOrDefaultAsync(ct)!;
+        public async Task<AuthCode?> GetByIdAsync(string id, CancellationToken ct = default)
+            => await _db.AuthCodes.Find(x => x.Id == id).FirstOrDefaultAsync(ct);
 
-        public Task<AuthCode?> GetByCodeAsync(string code, CancellationToken ct = default)
-            => _db.AuthCodes.Find(x => x.Code == code).FirstOrDefaultAsync(ct)!;
+        public async Task<AuthCode?> GetByCodeAsync(string code, CancellationToken ct = default)
+            => await _db.AuthCodes.Find(x => x.Code == code).FirstOrDefaultAsync(ct);
 
         public Task InsertAsync(AuthCode entity, CancellationToken ct = default)
             => _db.AuthCodes.InsertOneAsync(entity, cancellationToken: ct);
 
-        public Task<AuthCode?> UpdateAsync(string id, string? name, string? desc, CancellationToken ct = default)
+        public async Task<AuthCode?> UpdateAsync(string id, string? name, string? desc, CancellationToken ct = default)
         {
             var update = Builders<AuthCode>.Update
                 .Set(x => x.Name, name)
                 .Set(x => x.Desc, desc)
                 .Set(x => x.UpdatedAt, DateTime.UtcNow);
 
-            return _db.AuthCodes.FindOneAndUpdateAsync(
+            return await _db.AuthCodes.FindOneAndUpdateAsync(
                 Builders<AuthCode>.Filter.Eq(x => x.Id, id),
                 update,
                 new FindOneAndUpdateOptions<AuthCode> { ReturnDocument = ReturnDocument.After },
                 ct
-            )!;
+            );
         }
 
         public async Task<bool> DeleteAsync(string id, CancellationToken ct = default)

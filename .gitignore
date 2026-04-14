@@ -24,6 +24,11 @@ Thumbs.db
 # Environment files
 .env
 
+# Local secrets / per-developer overrides
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+
 # SQLite DB
 *.db
 *.sqlite

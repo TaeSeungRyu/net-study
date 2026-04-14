@@ -11,6 +11,12 @@ namespace MemberApi.Extensions
     {
         public static IServiceCollection AddJwtAuth(this IServiceCollection services, IConfiguration configuration)
         {
+            services.AddOptions<JwtSettings>()
+                .Bind(configuration.GetSection("Jwt"))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
+            // Bind once at startup; ValidateDataAnnotations above will throw at startup if invalid.
             var jwt = configuration.GetSection("Jwt").Get<JwtSettings>()
                 ?? throw new InvalidOperationException("Jwt 설정이 없습니다.");
 

@@ -1,4 +1,5 @@
 using MemberApi.Exceptions;
+using MemberApi.Models.Common;
 using MemberApi.Models.Dtos;
 using MemberApi.Models.Entities;
 using MemberApi.Repositories;
@@ -7,6 +8,8 @@ namespace MemberApi.Services
 {
     public class PostService
     {
+        private const int MaxPageSize = 100;
+
         private readonly IPostRepository _repo;
 
         public PostService(IPostRepository repo)
@@ -14,10 +17,20 @@ namespace MemberApi.Services
             _repo = repo;
         }
 
-        public async Task<List<PostResponse>> GetAllAsync(CancellationToken ct = default)
+        public async Task<PagedResult<PostResponse>> GetAllAsync(int page, int size, CancellationToken ct = default)
         {
-            var items = await _repo.GetAllAsync(ct);
-            return items.Select(ToResponse).ToList();
+            if (page < 1) page = 1;
+            if (size < 1) size = 10;
+            if (size > MaxPageSize) size = MaxPageSize;
+
+            var result = await _repo.GetPagedAsync(page, size, ct);
+            return new PagedResult<PostResponse>
+            {
+                Items = result.Items.Select(ToResponse).ToList(),
+                Page = result.Page,
+                Size = result.Size,
+                TotalCount = result.TotalCount
+            };
         }
 
         public async Task<PostResponse> GetAsync(int id, CancellationToken ct = default)

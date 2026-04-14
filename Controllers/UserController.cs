@@ -1,11 +1,13 @@
 using MemberApi.Models.Common;
 using MemberApi.Models.Dtos;
 using MemberApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MemberApi.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("api/users")]
     public class UserController : ControllerBase
     {
@@ -17,6 +19,7 @@ namespace MemberApi.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<List<UserResponse>>>> List(
             [FromQuery] int page = 1,
             [FromQuery] int size = 10,
@@ -34,6 +37,7 @@ namespace MemberApi.Controllers
         }
 
         [HttpPost]
+        [AllowAnonymous]
         public async Task<ActionResult<ApiResponse<UserResponse>>> Create(
             [FromBody] CreateUserRequest request,
             CancellationToken ct)
@@ -48,11 +52,23 @@ namespace MemberApi.Controllers
             [FromBody] UpdateUserRequest request,
             CancellationToken ct)
         {
-            await _userService.UpdateAsync(id, request, ct);
+            await _userService.UpdateAsync(id, request, User, ct);
             return Ok(ApiResponse<object>.Ok(null, "User updated successfully"));
         }
 
+        [HttpPut("{id}/roles")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<ApiResponse<object>>> UpdateRoles(
+            string id,
+            [FromBody] UpdateUserRolesRequest request,
+            CancellationToken ct)
+        {
+            await _userService.UpdateRolesAsync(id, request, ct);
+            return Ok(ApiResponse<object>.Ok(null, "User roles updated successfully"));
+        }
+
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ApiResponse<object>>> Delete(string id, CancellationToken ct)
         {
             await _userService.DeleteAsync(id, ct);

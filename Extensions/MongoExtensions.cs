@@ -9,7 +9,10 @@ namespace MemberApi.Extensions
     {
         public static IServiceCollection AddMongo(this IServiceCollection services, IConfiguration configuration)
         {
-            services.Configure<MongoDbSettings>(configuration.GetSection("MongoDB"));
+            services.AddOptions<MongoDbSettings>()
+                .Bind(configuration.GetSection("MongoDB"))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
 
             services.AddSingleton<IMongoClient>(sp =>
             {

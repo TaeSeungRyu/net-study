@@ -29,11 +29,26 @@ namespace MemberApi.Repositories
                 .ToListAsync(ct);
         }
 
-        public Task<User?> GetByIdAsync(string id, CancellationToken ct = default)
-            => _db.Users.Find(x => x.Id == id).FirstOrDefaultAsync(ct)!;
+        public async Task<UserWithRoles?> GetByIdWithRolesAsync(string id, CancellationToken ct = default)
+        {
+            var pipeline = _db.Users.Aggregate()
+                .Match(u => u.Id == id)
+                .Lookup<User, AuthCode, UserWithRoles>(
+                    foreignCollection: _db.AuthCodes,
+                    localField: u => u.Role,
+                    foreignField: a => a.Code,
+                    @as: x => x.Roles
+                )
+                .Limit(1);
 
-        public Task<User?> GetByUsernameAsync(string username, CancellationToken ct = default)
-            => _db.Users.Find(x => x.Username == username).FirstOrDefaultAsync(ct)!;
+            return await pipeline.FirstOrDefaultAsync(ct);
+        }
+
+        public async Task<User?> GetByIdAsync(string id, CancellationToken ct = default)
+            => await _db.Users.Find(x => x.Id == id).FirstOrDefaultAsync(ct);
+
+        public async Task<User?> GetByUsernameAsync(string username, CancellationToken ct = default)
+            => await _db.Users.Find(x => x.Username == username).FirstOrDefaultAsync(ct);
 
         public async Task<IReadOnlyList<AuthCode>> GetRolesAsync(IEnumerable<string> codes, CancellationToken ct = default)
         {

@@ -1,11 +1,13 @@
 using MemberApi.Models.Common;
 using MemberApi.Models.Dtos;
 using MemberApi.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MemberApi.Controllers
 {
     [ApiController]
+    [Authorize(Roles = "Admin")]
     [Route("api/auth-codes")]
     public class AuthCodeController : ControllerBase
     {

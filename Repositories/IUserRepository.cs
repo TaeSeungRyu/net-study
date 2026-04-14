@@ -5,6 +5,7 @@ namespace MemberApi.Repositories
     public interface IUserRepository
     {
         Task<IReadOnlyList<UserWithRoles>> ListWithRolesAsync(int page, int size, CancellationToken ct = default);
+        Task<UserWithRoles?> GetByIdWithRolesAsync(string id, CancellationToken ct = default);
         Task<User?> GetByIdAsync(string id, CancellationToken ct = default);
         Task<User?> GetByUsernameAsync(string username, CancellationToken ct = default);
         Task<IReadOnlyList<AuthCode>> GetRolesAsync(IEnumerable<string> codes, CancellationToken ct = default);
